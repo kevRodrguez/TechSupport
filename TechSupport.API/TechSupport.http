@@ -1,0 +1,118 @@
+@baseUrl = http://localhost:5080
+@adminToken = pegar-token-de-admin
+@tecnicoToken = pegar-token-de-tecnico
+@usuarioToken = pegar-token-de-usuario
+
+### 1. Login con credenciales correctas
+# Esperado: 200 y un token JWT. También devuelve nombreUsuario y rol.
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "nombreUsuario": "admin",
+  "password": "Admin123!"
+}
+
+###
+
+### 1b. Tokens de técnico y usuario
+# Repita el login con tecnico/Tecnico123! y usuario/Usuario123!.
+# Copie cada token en las variables de arriba antes de las pruebas 4 a 8.
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "nombreUsuario": "tecnico",
+  "password": "Tecnico123!"
+}
+
+###
+
+### 2. Login con contraseña incorrecta
+# Esperado: 401 y {"message":"Credenciales inválidas."}
+# Un usuario que no existe responde el mismo estado y el mismo mensaje.
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "nombreUsuario": "admin",
+  "password": "clave-incorrecta"
+}
+
+###
+
+### 3. Consultar incidentes sin JWT
+# Esperado: 401
+GET {{baseUrl}}/api/incidentes
+
+###
+
+### 4. Técnico intenta eliminar un incidente
+# Esperado: 403. El rol no puede eliminar; no importa el estado ni si el id existe.
+DELETE {{baseUrl}}/api/incidentes/1
+Authorization: Bearer {{tecnicoToken}}
+
+###
+
+### 5. Crear incidente sin título
+# Esperado: 400 y {"message":"El título es obligatorio."}
+POST {{baseUrl}}/api/incidentes
+Authorization: Bearer {{usuarioToken}}
+Content-Type: application/json
+
+{
+  "titulo": "",
+  "descripcion": "Sin título",
+  "prioridad": "Media"
+}
+
+###
+
+### 6. Crear incidente correctamente
+# Esperado: 201, estado Pendiente y usuarioId tomado del token, no del cuerpo.
+POST {{baseUrl}}/api/incidentes
+Authorization: Bearer {{usuarioToken}}
+Content-Type: application/json
+
+{
+  "titulo": "No enciende el monitor",
+  "descripcion": "El monitor queda en negro al iniciar.",
+  "prioridad": "Alta"
+}
+
+###
+
+### 7. Usuario consulta incidente de otro
+# Use un id creado por admin, no por este usuario.
+# Esperado: 404 y {"message":"Incidente no encontrado."}
+# Es el mismo cuerpo que GET /api/incidentes/99999.
+GET {{baseUrl}}/api/incidentes/2
+Authorization: Bearer {{usuarioToken}}
+
+###
+
+### 8. Cerrar un incidente que no está Resuelto
+# El id debe estar Pendiente, Asignado o EnProceso.
+# Esperado: 400. Desde Pendiente el mensaje indica que solo avanza al asignar un técnico.
+PUT {{baseUrl}}/api/incidentes/1/estado
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "estado": "Cerrado"
+}
+
+###
+
+### 9. La API produce una excepción
+# Esperado: 500
+# {
+#   "success": false,
+#   "message": "Ocurrió un error al procesar la solicitud.",
+#   "requestId": "<HttpContext.TraceIdentifier>",
+#   "timestamp": "<UTC>"
+# }
+# Sin traza, rutas del servidor ni nombre de la base.
+# Se probó con un endpoint temporal que lanzaba InvalidOperationException
+# y se borró antes de entregar, como pide la guía. El detalle completo
+# quedó solo en el log, junto al mismo requestId.
