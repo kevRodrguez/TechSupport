@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TechSupport.API.DTOs;
 using TechSupport.API.Services;
@@ -6,6 +7,7 @@ namespace TechSupport.API.Controllers;
 
 [ApiController]
 [Route("api/incidentes")]
+[Authorize]
 public class IncidentesController : ControllerBase
 {
     private readonly IncidenteService _service;
@@ -34,7 +36,7 @@ public class IncidentesController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<IncidenteResponse>> Crear(CrearIncidenteRequest request)
     {
-        var result = await _service.CrearAsync(request);
+        var result = await _service.CrearAsync(request, ClaimsActor.From(User).Id);
         if (!result.Success)
             return BadRequest(new { message = result.Message });
 

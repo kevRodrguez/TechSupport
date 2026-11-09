@@ -16,12 +16,15 @@ public class IncidenteService
         _db = db;
     }
 
-    public async Task<ServiceResult<IncidenteResponse>> CrearAsync(CrearIncidenteRequest request)
+    public async Task<ServiceResult<IncidenteResponse>> CrearAsync(CrearIncidenteRequest request, int usuarioId)
     {
         if (string.IsNullOrWhiteSpace(request.Titulo))
             return ServiceResult<IncidenteResponse>.BadRequest("El título es obligatorio.");
 
-        var reportante = await _db.Usuarios.FirstAsync(u => u.NombreUsuario == "usuario");
+        var reportante = await _db.Usuarios.FirstOrDefaultAsync(u => u.Id == usuarioId);
+        if (reportante is null)
+            return ServiceResult<IncidenteResponse>.BadRequest("El usuario del token no existe.");
+
         var incidente = new Incidente
         {
             Titulo = request.Titulo.Trim(),

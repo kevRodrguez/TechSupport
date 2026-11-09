@@ -483,6 +483,8 @@ $RECYCLE.BIN/
 
 # TechSupport
 *.db
+*.db-shm
+*.db-wal
 *.sqlite
 *.sqlite3
 Logs/
