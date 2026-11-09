@@ -8,22 +8,30 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
 {
+    options.IdleTimeout = TimeSpan.FromMinutes(60);
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
-    options.IdleTimeout = TimeSpan.FromMinutes(60);
+    options.Cookie.Name = "TechSupport.Session";
 });
+
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
         options.LoginPath = "/Account/Login";
         options.AccessDeniedPath = "/Account/AccesoDenegado";
         options.Cookie.Name = "TechSupport.Auth";
+        options.Cookie.HttpOnly = true;
+        options.SlidingExpiration = true;
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(60);
     });
-builder.Services.AddHttpClient("Api", client =>
+
+builder.Services.AddHttpClient("Api", (sp, client) =>
 {
-    var baseUrl = builder.Configuration["Api:BaseUrl"] ?? "http://localhost:5080";
+    var configuration = sp.GetRequiredService<IConfiguration>();
+    var baseUrl = configuration["Api:BaseUrl"] ?? "http://localhost:5080";
     if (!baseUrl.EndsWith('/'))
         baseUrl += "/";
+
     client.BaseAddress = new Uri(baseUrl);
 });
 builder.Services.AddScoped<ApiClient>();
@@ -36,16 +44,14 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
+app.UseStaticFiles();
 app.UseRouting();
 app.UseSession();
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapStaticAssets();
-
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Incidentes}/{action=Index}/{id?}")
-    .WithStaticAssets();
+    pattern: "{controller=Home}/{action=Index}/{id?}");
 
 app.Run();

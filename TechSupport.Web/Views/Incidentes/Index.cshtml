@@ -3,41 +3,41 @@
     ViewData["Title"] = "Incidentes";
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h1 class="h3 mb-0">Incidentes</h1>
-    <a class="btn btn-primary" asp-action="Crear">Nuevo incidente</a>
+<div class="page-header">
+    <h1>Incidentes</h1>
+    <a class="btn btn-default" asp-action="Crear">Nuevo incidente</a>
 </div>
 
 @if (Model.Count == 0)
 {
-    <div class="alert alert-secondary">No hay incidentes para mostrar con su rol.</div>
+    <div class="alert">No hay incidentes para mostrar con tu rol.</div>
 }
 else
 {
-    <div class="table-responsive">
-        <table class="table table-hover align-middle">
+    <div class="table-wrap">
+        <table class="table">
             <thead>
                 <tr>
-                    <th>Id</th>
                     <th>Título</th>
                     <th>Prioridad</th>
                     <th>Estado</th>
                     <th>Reportado por</th>
                     <th>Técnico</th>
                     <th>Creación</th>
+                    <th></th>
                 </tr>
             </thead>
             <tbody>
                 @foreach (var item in Model)
                 {
                     <tr>
-                        <td>@item.Id</td>
                         <td><a asp-action="Detalle" asp-route-id="@item.Id">@item.Titulo</a></td>
-                        <td>@Etiquetas.Prioridad(item.Prioridad)</td>
-                        <td><span class="badge @Etiquetas.Badge(item.Estado)">@Etiquetas.Estado(item.Estado)</span></td>
+                        <td><span class="@Etiquetas.Badge(item.Prioridad)">@Etiquetas.Prioridad(item.Prioridad)</span></td>
+                        <td><span class="@Etiquetas.Badge(item.Estado)">@Etiquetas.Estado(item.Estado)</span></td>
                         <td>@item.ReportadoPor</td>
-                        <td>@(item.Tecnico ?? "—")</td>
+                        <td>@(item.Tecnico ?? "Sin asignar")</td>
                         <td>@Etiquetas.Fecha(item.FechaCreacion)</td>
+                        <td><a class="btn btn-outline btn-sm" asp-action="Detalle" asp-route-id="@item.Id">Ver</a></td>
                     </tr>
                 }
             </tbody>

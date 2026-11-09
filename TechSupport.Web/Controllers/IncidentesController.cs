@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TechSupport.Web.Models;
@@ -15,14 +16,16 @@ public class IncidentesController : Controller
         _api = api;
     }
 
-    [HttpGet]
     public async Task<IActionResult> Index()
     {
         var result = await _api.ListarAsync();
+        if (await SesionVencida(result.StatusCode))
+            return RedirectToAction("Login", "Account");
+
         if (!result.Success)
         {
             TempData["Error"] = result.Message;
-            return View(new List<IncidenteDto>());
+            return View(Array.Empty<IncidenteDto>());
         }
 
         return View(result.Data ?? []);
@@ -42,6 +45,9 @@ public class IncidentesController : Controller
             return View(model);
 
         var result = await _api.CrearAsync(model.Titulo, model.Descripcion, model.Prioridad);
+        if (await SesionVencida(result.StatusCode))
+            return RedirectToAction("Login", "Account");
+
         if (!result.Success || result.Data is null)
         {
             ModelState.AddModelError(string.Empty, result.Message ?? "No se pudo crear el incidente.");
@@ -55,105 +61,94 @@ public class IncidentesController : Controller
     [HttpGet]
     public async Task<IActionResult> Detalle(int id)
     {
-        var result = await _api.ObtenerAsync(id);
-        if (!result.Success || result.Data is null)
-        {
-            TempData["Error"] = result.Message ?? "Incidente no encontrado.";
-            return RedirectToAction(nameof(Index));
-        }
+        var incidente = await _api.ObtenerAsync(id);
+        if (await SesionVencida(incidente.StatusCode))
+            return RedirectToAction("Login", "Account");
 
-        return View(result.Data);
+        if (!incidente.Success || incidente.Data is null)
+            return View("NoEncontrado", incidente.Message ?? "Incidente no encontrado.");
+
+        return View(incidente.Data);
     }
 
-    [Authorize(Roles = "Administrador")]
     [HttpGet]
+    [Authorize(Roles = "Administrador")]
     public async Task<IActionResult> Asignar(int id)
     {
         var incidente = await _api.ObtenerAsync(id);
+        if (await SesionVencida(incidente.StatusCode))
+            return RedirectToAction("Login", "Account");
+
         if (!incidente.Success || incidente.Data is null)
-        {
-            TempData["Error"] = incidente.Message ?? "Incidente no encontrado.";
-            return RedirectToAction(nameof(Index));
-        }
+            return View("NoEncontrado", incidente.Message ?? "Incidente no encontrado.");
 
-        var tecnicos = await _api.TecnicosAsync();
-        if (!tecnicos.Success)
-        {
-            TempData["Error"] = tecnicos.Message;
-            return RedirectToAction(nameof(Detalle), new { id });
-        }
-
-        return View(new AsignarViewModel
-        {
-            IncidenteId = id,
-            Titulo = incidente.Data.Titulo,
-            Tecnicos = (tecnicos.Data ?? []).Select(t => new TecnicoOpcion
-            {
-                Id = t.Id,
-                NombreUsuario = t.NombreUsuario
-            }).ToList()
-        });
+        return View(await CargarAsignar(incidente.Data, null));
     }
 
-    [Authorize(Roles = "Administrador")]
     [HttpPost]
+    [Authorize(Roles = "Administrador")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Asignar(AsignarViewModel model)
     {
-        var tecnicos = await _api.TecnicosAsync();
-        model.Tecnicos = (tecnicos.Data ?? []).Select(t => new TecnicoOpcion
-        {
-            Id = t.Id,
-            NombreUsuario = t.NombreUsuario
-        }).ToList();
+        var incidente = await _api.ObtenerAsync(model.IncidenteId);
+        if (await SesionVencida(incidente.StatusCode))
+            return RedirectToAction("Login", "Account");
+
+        if (!incidente.Success || incidente.Data is null)
+            return View("NoEncontrado", incidente.Message ?? "Incidente no encontrado.");
 
         if (!ModelState.IsValid)
-            return View(model);
+            return View(await CargarAsignar(incidente.Data, model.TecnicoId));
 
         var result = await _api.AsignarAsync(model.IncidenteId, model.TecnicoId!.Value);
+        if (await SesionVencida(result.StatusCode))
+            return RedirectToAction("Login", "Account");
+
         if (!result.Success)
         {
             ModelState.AddModelError(string.Empty, result.Message ?? "No se pudo asignar el técnico.");
-            return View(model);
+            return View(await CargarAsignar(incidente.Data, model.TecnicoId));
         }
 
         TempData["Ok"] = "Técnico asignado.";
         return RedirectToAction(nameof(Detalle), new { id = model.IncidenteId });
     }
 
-    [Authorize(Roles = "Administrador,Tecnico")]
     [HttpGet]
+    [Authorize(Roles = "Administrador,Tecnico")]
     public async Task<IActionResult> Estado(int id)
     {
         var incidente = await _api.ObtenerAsync(id);
-        if (!incidente.Success || incidente.Data is null)
-        {
-            TempData["Error"] = incidente.Message ?? "Incidente no encontrado.";
-            return RedirectToAction(nameof(Index));
-        }
+        if (await SesionVencida(incidente.StatusCode))
+            return RedirectToAction("Login", "Account");
 
-        var siguiente = Etiquetas.SiguienteEstado(incidente.Data.Estado);
+        if (!incidente.Success || incidente.Data is null)
+            return View("NoEncontrado", incidente.Message ?? "Incidente no encontrado.");
+
         return View(new EstadoViewModel
         {
-            IncidenteId = id,
+            IncidenteId = incidente.Data.Id,
             Titulo = incidente.Data.Titulo,
             EstadoActual = incidente.Data.Estado,
-            Estado = siguiente
+            Estado = Etiquetas.SiguienteEstado(incidente.Data.Estado)
         });
     }
 
-    [Authorize(Roles = "Administrador,Tecnico")]
     [HttpPost]
+    [Authorize(Roles = "Administrador,Tecnico")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Estado(EstadoViewModel model)
     {
         if (!ModelState.IsValid || string.IsNullOrWhiteSpace(model.Estado))
         {
-            ModelState.AddModelError(string.Empty, "Seleccione el estado destino.");
+            ModelState.AddModelError(string.Empty, "Debe indicar el estado destino.");
             return View(model);
         }
 
         var result = await _api.CambiarEstadoAsync(model.IncidenteId, model.Estado);
+        if (await SesionVencida(result.StatusCode))
+            return RedirectToAction("Login", "Account");
+
         if (!result.Success)
         {
             ModelState.AddModelError(string.Empty, result.Message ?? "No se pudo cambiar el estado.");
@@ -164,12 +159,15 @@ public class IncidentesController : Controller
         return RedirectToAction(nameof(Detalle), new { id = model.IncidenteId });
     }
 
-    [Authorize(Roles = "Administrador")]
     [HttpPost]
+    [Authorize(Roles = "Administrador")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Eliminar(int id)
     {
         var result = await _api.EliminarAsync(id);
+        if (await SesionVencida(result.StatusCode))
+            return RedirectToAction("Login", "Account");
+
         if (!result.Success)
         {
             TempData["Error"] = result.Message ?? "No se pudo eliminar el incidente.";
@@ -178,5 +176,38 @@ public class IncidentesController : Controller
 
         TempData["Ok"] = "Incidente eliminado.";
         return RedirectToAction(nameof(Index));
+    }
+
+    private async Task<AsignarViewModel> CargarAsignar(IncidenteDto incidente, int? tecnicoId)
+    {
+        var vm = new AsignarViewModel
+        {
+            IncidenteId = incidente.Id,
+            Titulo = incidente.Titulo,
+            TecnicoId = tecnicoId
+        };
+
+        var tecnicos = await _api.TecnicosAsync();
+        if (!tecnicos.Success)
+            ModelState.AddModelError(string.Empty, tecnicos.Message ?? "No se pudieron cargar los técnicos.");
+        else
+        {
+            vm.Tecnicos = (tecnicos.Data ?? [])
+                .Select(t => new TecnicoOpcion { Id = t.Id, NombreUsuario = t.NombreUsuario })
+                .ToList();
+        }
+
+        return vm;
+    }
+
+    private async Task<bool> SesionVencida(int statusCode)
+    {
+        if (statusCode != StatusCodes.Status401Unauthorized)
+            return false;
+
+        await HttpContext.SignOutAsync();
+        HttpContext.Session.Clear();
+        TempData["Error"] = "La sesión expiró. Vuelve a iniciar sesión.";
+        return true;
     }
 }

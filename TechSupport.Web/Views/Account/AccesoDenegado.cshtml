@@ -2,8 +2,8 @@
     ViewData["Title"] = "Acceso denegado";
 }
 
-<div class="alert alert-warning">
-    <h1 class="h4">Acceso denegado</h1>
-    <p class="mb-0">Su rol no puede realizar esta operación. La API también la rechazaría.</p>
+<div class="alert alert-error">
+    <h1>Acceso denegado</h1>
+    <p>Tu rol no puede realizar esta operación. Ocultar el botón no autoriza la acción: la API también la rechaza.</p>
 </div>
-<p><a asp-controller="Incidentes" asp-action="Index">Volver al listado</a></p>
+<p><a class="btn btn-outline" asp-controller="Incidentes" asp-action="Index">Volver al listado</a></p>

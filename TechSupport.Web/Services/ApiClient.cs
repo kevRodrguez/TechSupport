@@ -48,13 +48,20 @@ public class ApiClient
         try
         {
             var request = new HttpRequestMessage(method, url);
+            if (withToken)
+            {
+                var token = _http.HttpContext?.Session.GetString("Jwt");
+                if (!string.IsNullOrEmpty(token))
+                    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            }
+
             if (body is not null)
                 request.Content = JsonContent.Create(body);
 
-            using var response = await Create(withToken).SendAsync(request);
+            using var response = await _factory.CreateClient("Api").SendAsync(request);
             var raw = await response.Content.ReadAsStringAsync();
             if (!response.IsSuccessStatusCode)
-                return ApiResult<T>.Fail((int)response.StatusCode, ReadMessage(raw));
+                return ApiResult<T>.Fail((int)response.StatusCode, ReadMessage(raw, (int)response.StatusCode));
 
             if (response.StatusCode == System.Net.HttpStatusCode.NoContent || string.IsNullOrWhiteSpace(raw))
                 return ApiResult<T>.Ok(default);
@@ -68,38 +75,33 @@ public class ApiClient
         }
     }
 
-    private HttpClient Create(bool withToken)
+    private static string ReadMessage(string raw, int statusCode)
     {
-        var client = _factory.CreateClient("Api");
-        if (!withToken)
-            return client;
-
-        var token = _http.HttpContext?.Session.GetString("Jwt");
-        if (!string.IsNullOrEmpty(token))
-            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
-        return client;
-    }
-
-    private static string ReadMessage(string raw)
-    {
-        if (string.IsNullOrWhiteSpace(raw))
-            return "La operación fue rechazada.";
-
-        try
+        if (!string.IsNullOrWhiteSpace(raw))
         {
-            using var document = JsonDocument.Parse(raw);
-            if (document.RootElement.TryGetProperty("message", out var message)
-                && message.ValueKind == JsonValueKind.String)
+            try
             {
-                return message.GetString() ?? "La operación fue rechazada.";
+                using var document = JsonDocument.Parse(raw);
+                if (document.RootElement.TryGetProperty("message", out var message)
+                    && message.ValueKind == JsonValueKind.String
+                    && !string.IsNullOrWhiteSpace(message.GetString()))
+                {
+                    return message.GetString()!;
+                }
+            }
+            catch (JsonException)
+            {
+                return raw;
             }
         }
-        catch (JsonException)
-        {
-        }
 
-        return "La operación fue rechazada.";
+        return statusCode switch
+        {
+            StatusCodes.Status401Unauthorized => "Credenciales inválidas.",
+            StatusCodes.Status403Forbidden => "No tienes permiso para esta acción.",
+            StatusCodes.Status404NotFound => "Incidente no encontrado.",
+            _ => "La operación fue rechazada."
+        };
     }
 }
 

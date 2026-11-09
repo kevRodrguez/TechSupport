@@ -63,6 +63,15 @@ public class EstadoViewModel
 
 public static class Etiquetas
 {
+    public static readonly (string Value, string Label)[] Estados =
+    [
+        ("Pendiente", "Pendiente"),
+        ("Asignado", "Asignado"),
+        ("EnProceso", "En proceso"),
+        ("Resuelto", "Resuelto"),
+        ("Cerrado", "Cerrado")
+    ];
+
     public static string Estado(string? estado) => estado switch
     {
         "EnProceso" => "En proceso",
@@ -86,15 +95,8 @@ public static class Etiquetas
         _ => rol
     };
 
-    public static string Badge(string? estado) => estado switch
-    {
-        "Pendiente" => "text-bg-secondary",
-        "Asignado" => "text-bg-info",
-        "EnProceso" => "text-bg-primary",
-        "Resuelto" => "text-bg-success",
-        "Cerrado" => "text-bg-dark",
-        _ => "text-bg-secondary"
-    };
+    public static string Badge(string? valor) =>
+        string.IsNullOrEmpty(valor) ? "badge" : $"badge badge-{valor}";
 
     public static string? SiguienteEstado(string? estado) => estado switch
     {
@@ -105,5 +107,5 @@ public static class Etiquetas
     };
 
     public static string Fecha(DateTime fecha) =>
-        fecha.ToLocalTime().ToString("yyyy-MM-dd HH:mm");
+        fecha.ToLocalTime().ToString("dd/MM/yyyy HH:mm");
 }

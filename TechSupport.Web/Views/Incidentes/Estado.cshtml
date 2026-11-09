@@ -4,39 +4,47 @@
     var siguiente = Etiquetas.SiguienteEstado(Model.EstadoActual);
 }
 
-<h1 class="h3 mb-3">Cambiar estado</h1>
-<p>Incidente: <strong>@Model.Titulo</strong></p>
-<p>Estado actual: <span class="badge @Etiquetas.Badge(Model.EstadoActual)">@Etiquetas.Estado(Model.EstadoActual)</span></p>
+<div class="page-header">
+    <h1>Cambiar estado</h1>
+</div>
 
-@if (siguiente is null)
-{
-    <div class="alert alert-secondary">
-        @if (Model.EstadoActual == "Pendiente")
-        {
-            <span>Un incidente pendiente solo avanza cuando un administrador asigna un técnico.</span>
-        }
-        else
-        {
-            <span>Un incidente cerrado no se puede reabrir. Si el problema vuelve, cree uno nuevo.</span>
-        }
-    </div>
-    <a class="btn btn-link" asp-action="Detalle" asp-route-id="@Model.IncidenteId">Volver</a>
-}
-else
-{
-    <form asp-action="Estado" method="post" class="col-lg-6">
+<form asp-action="Estado" method="post" class="card form-narrow">
+    <div class="card-body">
+        <p class="muted">Incidente: <strong>@Model.Titulo</strong></p>
+        <p style="margin: 12px 0 16px;">
+            Estado actual: <span class="@Etiquetas.Badge(Model.EstadoActual)">@Etiquetas.Estado(Model.EstadoActual)</span>
+        </p>
         <input type="hidden" asp-for="IncidenteId" />
         <input type="hidden" asp-for="Titulo" />
         <input type="hidden" asp-for="EstadoActual" />
-        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
-        <div class="mb-3">
-            <label asp-for="Estado" class="form-label"></label>
-            <select asp-for="Estado" class="form-select">
-                <option value="@siguiente">@Etiquetas.Estado(siguiente)</option>
+        <div asp-validation-summary="ModelOnly" class="alert alert-error"></div>
+        <div class="field">
+            <label asp-for="Estado" class="label"></label>
+            <select asp-for="Estado" class="input">
+                <option value="">Seleccione un estado</option>
+                @foreach (var estado in Etiquetas.Estados)
+                {
+                    <option value="@estado.Value">@estado.Label</option>
+                }
             </select>
-            <div class="form-text">La API rechaza saltos o retrocesos aunque se altere este formulario.</div>
+            <p class="hint">
+                @if (siguiente is null && Model.EstadoActual == "Pendiente")
+                {
+                    <span>Pendiente solo pasa a Asignado al asignar un técnico. La API rechaza otro destino.</span>
+                }
+                else if (siguiente is null)
+                {
+                    <span>Un incidente cerrado no se reabre. La API rechaza el cambio aunque se envíe este formulario.</span>
+                }
+                else
+                {
+                    <span>El siguiente estado permitido es @Etiquetas.Estado(siguiente). La API rechaza saltos o retrocesos.</span>
+                }
+            </p>
         </div>
-        <button type="submit" class="btn btn-primary">Guardar estado</button>
-        <a class="btn btn-link" asp-action="Detalle" asp-route-id="@Model.IncidenteId">Cancelar</a>
-    </form>
-}
+        <div class="actions">
+            <button type="submit" class="btn btn-default">Guardar estado</button>
+            <a class="btn btn-outline" asp-action="Detalle" asp-route-id="@Model.IncidenteId">Cancelar</a>
+        </div>
+    </div>
+</form>

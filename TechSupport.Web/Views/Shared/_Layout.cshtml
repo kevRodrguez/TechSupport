@@ -3,77 +3,36 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - TechSupport</title>
-    <script type="importmap"></script>
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <title>@ViewData["Title"] · TechSupport</title>
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/TechSupport.Web.styles.css" asp-append-version="true" />
 </head>
 <body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-dark bg-dark border-bottom mb-3">
-            <div class="container">
-                <a class="navbar-brand" asp-controller="Incidentes" asp-action="Index">TechSupport</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Mostrar navegación">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        @if (User.Identity?.IsAuthenticated == true)
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Incidentes" asp-action="Index">Incidentes</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Incidentes" asp-action="Crear">Nuevo incidente</a>
-                            </li>
-                        }
-                    </ul>
-                    <ul class="navbar-nav">
-                        @if (User.Identity?.IsAuthenticated == true)
-                        {
-                            <li class="nav-item d-flex align-items-center text-white-50 me-3">
-                                @User.Identity.Name · @Etiquetas.Rol(User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value)
-                            </li>
-                            <li class="nav-item">
-                                <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
-                                    <button type="submit" class="btn btn-outline-light btn-sm">Cerrar sesión</button>
-                                </form>
-                            </li>
-                        }
-                        else
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Account" asp-action="Login">Iniciar sesión</a>
-                            </li>
-                        }
-                    </ul>
+    <header class="topbar">
+        <div class="topbar-inner">
+            <a class="brand" asp-controller="Incidentes" asp-action="Index">TechSupport</a>
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+                <div class="topbar-user">
+                    <span class="user-name">@User.Identity.Name</span>
+                    <span class="badge">@Etiquetas.Rol(User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value)</span>
+                    <form asp-controller="Account" asp-action="Logout" method="post">
+                        <button type="submit" class="btn btn-ghost btn-sm">Cerrar sesión</button>
+                    </form>
                 </div>
-            </div>
-        </nav>
-    </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @if (TempData["Ok"] is string ok)
-            {
-                <div class="alert alert-success" role="alert">@ok</div>
             }
-            @if (TempData["Error"] is string error)
-            {
-                <div class="alert alert-danger" role="alert">@error</div>
-            }
-            @RenderBody()
-        </main>
-    </div>
-
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            TechSupport Solutions
         </div>
-    </footer>
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
+    </header>
+    <main class="page">
+        @if (TempData["Ok"] is string ok)
+        {
+            <div class="alert alert-ok" role="status">@ok</div>
+        }
+        @if (TempData["Error"] is string error)
+        {
+            <div class="alert alert-error" role="alert">@error</div>
+        }
+        @RenderBody()
+    </main>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
