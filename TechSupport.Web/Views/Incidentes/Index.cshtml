@@ -1,0 +1,46 @@
+@model IReadOnlyList<IncidenteDto>
+@{
+    ViewData["Title"] = "Incidentes";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">Incidentes</h1>
+    <a class="btn btn-primary" asp-action="Crear">Nuevo incidente</a>
+</div>
+
+@if (Model.Count == 0)
+{
+    <div class="alert alert-secondary">No hay incidentes para mostrar con su rol.</div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>Id</th>
+                    <th>Título</th>
+                    <th>Prioridad</th>
+                    <th>Estado</th>
+                    <th>Reportado por</th>
+                    <th>Técnico</th>
+                    <th>Creación</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td>@item.Id</td>
+                        <td><a asp-action="Detalle" asp-route-id="@item.Id">@item.Titulo</a></td>
+                        <td>@Etiquetas.Prioridad(item.Prioridad)</td>
+                        <td><span class="badge @Etiquetas.Badge(item.Estado)">@Etiquetas.Estado(item.Estado)</span></td>
+                        <td>@item.ReportadoPor</td>
+                        <td>@(item.Tecnico ?? "—")</td>
+                        <td>@Etiquetas.Fecha(item.FechaCreacion)</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

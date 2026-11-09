@@ -1,0 +1,29 @@
+@model AsignarViewModel
+@{
+    ViewData["Title"] = "Asignar técnico";
+}
+
+<h1 class="h3 mb-3">Asignar técnico</h1>
+<p>Incidente: <strong>@Model.Titulo</strong></p>
+<form asp-action="Asignar" method="post" class="col-lg-6">
+    <input type="hidden" asp-for="IncidenteId" />
+    <input type="hidden" asp-for="Titulo" />
+    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+    <div class="mb-3">
+        <label asp-for="TecnicoId" class="form-label"></label>
+        <select asp-for="TecnicoId" class="form-select">
+            <option value="">Seleccione un técnico</option>
+            @foreach (var tecnico in Model.Tecnicos)
+            {
+                <option value="@tecnico.Id">@tecnico.NombreUsuario</option>
+            }
+        </select>
+        <span asp-validation-for="TecnicoId" class="text-danger"></span>
+    </div>
+    <button type="submit" class="btn btn-primary">Asignar</button>
+    <a class="btn btn-link" asp-action="Detalle" asp-route-id="@Model.IncidenteId">Cancelar</a>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -1,0 +1,46 @@
+@model IncidenteDto
+@{
+    ViewData["Title"] = Model.Titulo;
+    var esAdmin = User.IsInRole("Administrador");
+    var esTecnico = User.IsInRole("Tecnico");
+    var siguiente = Etiquetas.SiguienteEstado(Model.Estado);
+}
+
+<div class="d-flex justify-content-between align-items-start mb-3">
+    <div>
+        <h1 class="h3 mb-1">@Model.Titulo</h1>
+        <span class="badge @Etiquetas.Badge(Model.Estado)">@Etiquetas.Estado(Model.Estado)</span>
+        <span class="badge text-bg-light border">@Etiquetas.Prioridad(Model.Prioridad)</span>
+    </div>
+    <a class="btn btn-outline-secondary" asp-action="Index">Volver</a>
+</div>
+
+<dl class="row">
+    <dt class="col-sm-3">Descripción</dt>
+    <dd class="col-sm-9">@(string.IsNullOrWhiteSpace(Model.Descripcion) ? "—" : Model.Descripcion)</dd>
+    <dt class="col-sm-3">Reportado por</dt>
+    <dd class="col-sm-9">@Model.ReportadoPor</dd>
+    <dt class="col-sm-3">Técnico</dt>
+    <dd class="col-sm-9">@(Model.Tecnico ?? "Sin asignar")</dd>
+    <dt class="col-sm-3">Creación</dt>
+    <dd class="col-sm-9">@Etiquetas.Fecha(Model.FechaCreacion)</dd>
+    <dt class="col-sm-3">Resolución</dt>
+    <dd class="col-sm-9">@(Model.FechaResolucion is null ? "—" : Etiquetas.Fecha(Model.FechaResolucion.Value))</dd>
+</dl>
+
+<div class="d-flex flex-wrap gap-2">
+    @if (esAdmin && Model.Estado == "Pendiente")
+    {
+        <a class="btn btn-primary" asp-action="Asignar" asp-route-id="@Model.Id">Asignar técnico</a>
+    }
+    @if ((esAdmin || esTecnico) && siguiente is not null)
+    {
+        <a class="btn btn-outline-primary" asp-action="Estado" asp-route-id="@Model.Id">Cambiar estado</a>
+    }
+    @if (esAdmin)
+    {
+        <form asp-action="Eliminar" asp-route-id="@Model.Id" method="post" onsubmit="return confirm('¿Eliminar este incidente? Se pierden el título, la descripción, el técnico y las fechas.');">
+            <button type="submit" class="btn btn-danger">Eliminar</button>
+        </form>
+    }
+</div>
